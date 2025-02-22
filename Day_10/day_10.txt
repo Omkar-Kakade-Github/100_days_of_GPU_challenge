@@ -1,0 +1,4 @@
+Completed: Chapter 6 of PMPP.
+Morning: Studied Pthreads and OpenMP for thread-based parallelism.
+Afternoon: Began working on a project using a multimodal vision model by Llava. This project will require additional time to complete.
+Other: Spent some time on job searching and interview preparation.
