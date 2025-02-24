@@ -8,7 +8,7 @@ __global__ void convolution_2D(float *N, float *F, float *P, int r, int width, i
     int outCol = blockIdx.x * blockDim.x + threadIdx.x;
     int outRow = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (outCol >= width || outRow >= height) return; // Avoid out-of-bounds threads
+    if (outCol >= width || outRow >= height) return;
 
     float Pvalue = 0.0f;
     for (int fRow = 0; fRow < 2*r+1; fRow++) {
@@ -36,7 +36,6 @@ void applyConvolution(const char *inputImage, const char *outputImage) {
 
     printf("Image Loaded: %dx%d, Channels: %d\n", width, height, channels);
 
-    // Convert image to grayscale
     float *grayImage = (float *)malloc(width * height * sizeof(float));
     for (int i = 0; i < width * height; i++) {
         int r = image[i * channels];
@@ -98,29 +97,24 @@ void applyConvolution(const char *inputImage, const char *outputImage) {
           2,  3,  4,  5,  6,  7,  8
     };
 
-    // Allocate device memory
     float *d_N, *d_F, *d_P;
     cudaMalloc(&d_N, width * height * sizeof(float));
     cudaMalloc(&d_F, (2 * r + 1) * (2 * r + 1) * sizeof(float));
     cudaMalloc(&d_P, width * height * sizeof(float));
 
-    // Copy data to device
+
     cudaMemcpy(d_N, grayImage, width * height * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_F, emboss, (2 * r + 1) * (2 * r + 1) * sizeof(float), cudaMemcpyHostToDevice);
 
-    // Configure kernel launch
     dim3 blockSize(16, 16);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     
-    // Launch kernel
     convolution_2D<<<gridSize, blockSize>>>(d_N, d_F, d_P, r, width, height);
     cudaDeviceSynchronize();
 
-    // Copy result back
     float *h_P = (float *)malloc(width * height * sizeof(float));
     cudaMemcpy(h_P, d_P, width * height * sizeof(float), cudaMemcpyDeviceToHost);
 
-    // Normalize result to [0, 255]
     unsigned char *outputImageData = (unsigned char *)malloc(width * height);
     float minVal = h_P[0], maxVal = h_P[0];
     for (int i = 0; i < width * height; i++) {
@@ -131,12 +125,10 @@ void applyConvolution(const char *inputImage, const char *outputImage) {
         outputImageData[i] = (unsigned char)(255 * (h_P[i] - minVal) / (maxVal - minVal));
     }
 
-    // Save output using stb_image_write.h
     stbi_write_png(outputImage, width, height, 1, outputImageData, width);
 
     printf("Output saved to %s\n", outputImage);
 
-    // Free memory
     stbi_image_free(image);
     free(grayImage);
     free(h_P);
